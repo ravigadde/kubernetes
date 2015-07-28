@@ -773,3 +773,8 @@ func (os *OpenStack) GetZone() (cloudprovider.Zone, error) {
 func (os *OpenStack) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
 }
+
+// Returns an implementation of SchedulerExtension for OpenStack
+func (os *OpenStack) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, false
+}

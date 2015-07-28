@@ -143,6 +143,11 @@ func (v *OVirtCloud) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
 }
 
+// SchedulerExtension returns an implementation of SchedulerExtension for oVirt cloud
+func (v *OVirtCloud) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, false
+}
+
 // NodeAddresses returns the NodeAddresses of a particular machine instance
 func (v *OVirtCloud) NodeAddresses(name string) ([]api.NodeAddress, error) {
 	instance, err := v.fetchInstance(name)

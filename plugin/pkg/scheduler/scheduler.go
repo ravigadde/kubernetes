@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithm"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/metrics"
@@ -94,6 +95,9 @@ type Config struct {
 
 	// Close this to shut down the scheduler.
 	StopEverything chan struct{}
+
+	// Cloud provider interface
+	Cloud cloudprovider.Interface
 }
 
 // New returns a new scheduler.
@@ -121,7 +125,7 @@ func (s *Scheduler) scheduleOne() {
 	defer func() {
 		metrics.E2eSchedulingLatency.Observe(metrics.SinceInMicroseconds(start))
 	}()
-	dest, err := s.config.Algorithm.Schedule(pod, s.config.MinionLister)
+	dest, err := s.config.Algorithm.Schedule(pod, s.config.MinionLister, s.config.Cloud)
 	metrics.SchedulingAlgorithmLatency.Observe(metrics.SinceInMicroseconds(start))
 	if err != nil {
 		glog.V(1).Infof("Failed to schedule: %v", pod)
@@ -137,6 +141,25 @@ func (s *Scheduler) scheduleOne() {
 		},
 	}
 
+	if s.config.Cloud != nil {
+		ext, supported := s.config.Cloud.SchedulerExtension()
+		if supported {
+			annotations, err := ext.Bind(pod, dest)
+			if err != nil {
+				glog.V(1).Infof("Failed to bind pod %s with cloud provider, error: %s", pod.Name, err.Error())
+				s.config.Recorder.Eventf(pod, "failedBind", "Binding rejected by cloud provider: %s", err.Error())
+				s.config.Error(pod, err)
+				return
+			}
+
+			// Copy the annotations to the binding, to be copied over to the pod.
+			b.Annotations = make(map[string]string)
+			for k, v := range annotations {
+				b.Annotations[k] = v
+			}
+		}
+	}
+
 	// We want to add the pod to the model iff the bind succeeds, but we don't want to race
 	// with any deletions, which happen asynchronously.
 	s.config.Modeler.LockedAction(func() {
@@ -147,6 +170,18 @@ func (s *Scheduler) scheduleOne() {
 			glog.V(1).Infof("Failed to bind pod: %v", err)
 			s.config.Recorder.Eventf(pod, "failedScheduling", "Binding rejected: %v", err)
 			s.config.Error(pod, err)
+
+			if s.config.Cloud != nil {
+				ext, supported := s.config.Cloud.SchedulerExtension()
+				if supported {
+					err := ext.Unbind(pod)
+					if err != nil {
+						glog.V(1).Infof("Failed to unbind pod %s with cloud provider, error: %s", pod.Name, err.Error())
+						s.config.Recorder.Eventf(pod, "failedUnbind", "Unbind failed with cloud provider: %s", err.Error())
+					}
+				}
+			}
+
 			return
 		}
 		s.config.Recorder.Eventf(pod, "scheduled", "Successfully assigned %v to %v", pod.Name, dest)

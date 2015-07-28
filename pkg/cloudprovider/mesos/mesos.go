@@ -124,6 +124,11 @@ func (c *MesosCloud) ProviderName() string {
 	return ProviderName
 }
 
+// SchedulerExtension returns an implementation of SchedulerExtension for Mesos cloud.
+func (c *MesosCloud) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, false
+}
+
 // ListClusters lists the names of the available Mesos clusters.
 func (c *MesosCloud) ListClusters() ([]string, error) {
 	// Always returns a single cluster (this one!)

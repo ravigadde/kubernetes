@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -38,11 +39,12 @@ import (
 type podStrategy struct {
 	runtime.ObjectTyper
 	api.NameGenerator
+	Cloud cloudprovider.Interface
 }
 
 // Strategy is the default logic that applies when creating and updating Pod
 // objects via the REST API.
-var Strategy = podStrategy{api.Scheme, api.SimpleNameGenerator}
+var Strategy = podStrategy{api.Scheme, api.SimpleNameGenerator, nil}
 
 // NamespaceScoped is true for pods.
 func (podStrategy) NamespaceScoped() bool {
@@ -87,6 +89,18 @@ func (podStrategy) AllowUnconditionalUpdate() bool {
 
 // CheckGracefulDelete allows a pod to be gracefully deleted.
 func (podStrategy) CheckGracefulDelete(obj runtime.Object, options *api.DeleteOptions) bool {
+	pod := obj.(*api.Pod)
+
+	if Strategy.Cloud != nil && pod.Status.HostIP != "" {
+		ext, supported := Strategy.Cloud.SchedulerExtension()
+		if supported {
+			err := ext.Unbind(pod)
+			if err != nil {
+				glog.V(1).Infof("Failed to unbind pod %s with cloud provider, error: %s", pod.Name, err.Error())
+			}
+		}
+	}
+
 	return false
 }
 

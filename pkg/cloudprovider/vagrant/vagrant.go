@@ -111,6 +111,11 @@ func (v *VagrantCloud) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
 }
 
+// SchedulerExtension returns an implementation of SchedulerExtension for Vagrant cloud.
+func (v *VagrantCloud) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, false
+}
+
 // getInstanceByAddress retuns
 func (v *VagrantCloud) getInstanceByAddress(address string) (*SaltMinion, error) {
 	token, err := v.saltLogin()

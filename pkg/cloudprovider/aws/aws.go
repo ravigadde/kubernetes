@@ -623,6 +623,11 @@ func (aws *AWSCloud) Routes() (cloudprovider.Routes, bool) {
 	return aws, true
 }
 
+// Returns an implementation of SchedulerExtension for Amazon Web Services.
+func (aws *AWSCloud) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, true
+}
+
 // NodeAddresses is an implementation of Instances.NodeAddresses.
 func (aws *AWSCloud) NodeAddresses(name string) ([]api.NodeAddress, error) {
 	instance, err := aws.getInstanceByNodeName(name)

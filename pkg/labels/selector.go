@@ -69,7 +69,7 @@ func (a ByKey) Len() int { return len(a) }
 
 func (a ByKey) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
-func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
+func (a ByKey) Less(i, j int) bool { return a[i].key < a[j].key }
 
 // Requirement is a selector that contains values, a key
 // and an operator that relates the key and values. The zero
@@ -77,9 +77,9 @@ func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 // Requirement implements both set based match and exact match
 // Requirement is initialized via NewRequirement constructor for creating a valid Requirement.
 type Requirement struct {
-	Key       string
-	Operator  Operator
-	StrValues util.StringSet
+	key       string
+	operator  Operator
+	strValues util.StringSet
 }
 
 // NewRequirement is the constructor for a Requirement.
@@ -114,7 +114,7 @@ func NewRequirement(key string, op Operator, vals util.StringSet) (*Requirement,
 			return nil, err
 		}
 	}
-	return &Requirement{Key: key, Operator: op, StrValues: vals}, nil
+	return &Requirement{key: key, operator: op, strValues: vals}, nil
 }
 
 // Matches returns true if the Requirement matches the input Labels.
@@ -127,19 +127,19 @@ func NewRequirement(key string, op Operator, vals util.StringSet) (*Requirement,
 // (4) The operator is NotIn and Labels does not have the
 //     Requirement's key.
 func (r *Requirement) Matches(ls Labels) bool {
-	switch r.Operator {
+	switch r.operator {
 	case InOperator, EqualsOperator, DoubleEqualsOperator:
-		if !ls.Has(r.Key) {
+		if !ls.Has(r.key) {
 			return false
 		}
-		return r.StrValues.Has(ls.Get(r.Key))
+		return r.strValues.Has(ls.Get(r.key))
 	case NotInOperator, NotEqualsOperator:
-		if !ls.Has(r.Key) {
+		if !ls.Has(r.key) {
 			return true
 		}
-		return !r.StrValues.Has(ls.Get(r.Key))
+		return !r.strValues.Has(ls.Get(r.key))
 	case ExistsOperator:
-		return ls.Has(r.Key)
+		return ls.Has(r.key)
 	default:
 		return false
 	}
@@ -158,9 +158,9 @@ func (lsel LabelSelector) Empty() bool {
 // returned. See NewRequirement for creating a valid Requirement.
 func (r *Requirement) String() string {
 	var buffer bytes.Buffer
-	buffer.WriteString(r.Key)
+	buffer.WriteString(r.key)
 
-	switch r.Operator {
+	switch r.operator {
 	case EqualsOperator:
 		buffer.WriteString("=")
 	case DoubleEqualsOperator:
@@ -175,17 +175,17 @@ func (r *Requirement) String() string {
 		return buffer.String()
 	}
 
-	switch r.Operator {
+	switch r.operator {
 	case InOperator, NotInOperator:
 		buffer.WriteString("(")
 	}
-	if len(r.StrValues) == 1 {
-		buffer.WriteString(r.StrValues.List()[0])
+	if len(r.strValues) == 1 {
+		buffer.WriteString(r.strValues.List()[0])
 	} else { // only > 1 since == 0 prohibited by NewRequirement
-		buffer.WriteString(strings.Join(r.StrValues.List(), ","))
+		buffer.WriteString(strings.Join(r.strValues.List(), ","))
 	}
 
-	switch r.Operator {
+	switch r.operator {
 	case InOperator, NotInOperator:
 		buffer.WriteString(")")
 	}

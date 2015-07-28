@@ -1307,17 +1307,17 @@ func deepCopy_api_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error 
 	} else {
 		out.NodeSelector = nil
 	}
-	if in.AntiAffinitySelectors != nil {
-		out.AntiAffinitySelectors = make([]labels.LabelSelector, len(in.AntiAffinitySelectors))
-		for i := range in.AntiAffinitySelectors {
-			if newVal, err := c.DeepCopy(in.AntiAffinitySelectors[i]); err != nil {
+	if in.PodConflictSelectors != nil {
+		out.PodConflictSelectors = make([][]labels.Requirement, len(in.PodConflictSelectors))
+		for i := range in.PodConflictSelectors {
+			if newVal, err := c.DeepCopy(in.PodConflictSelectors[i]); err != nil {
 				return err
 			} else {
-				out.AntiAffinitySelectors[i] = newVal.(labels.LabelSelector)
+				out.PodConflictSelectors[i] = newVal.([]labels.Requirement)
 			}
 		}
 	} else {
-		out.AntiAffinitySelectors = nil
+		out.PodConflictSelectors = nil
 	}
 	out.ServiceAccountName = in.ServiceAccountName
 	out.NodeName = in.NodeName
@@ -2069,19 +2069,19 @@ func deepCopy_resource_Quantity(in resource.Quantity, out *resource.Quantity, c 
 }
 
 func deepCopy_labels_Requirement(in labels.Requirement, out *labels.Requirement, c *conversion.Cloner) error {
-	out.Key = in.Key
-	out.Operator = in.Operator
-	if in.StrValues != nil {
-		out.StrValues = make(map[string]util.Empty)
-		for key, val := range in.StrValues {
+	out.key = in.key
+	out.operator = in.operator
+	if in.strValues != nil {
+		out.strValues = make(map[string]util.Empty)
+		for key, val := range in.strValues {
 			newVal := new(util.Empty)
 			if err := deepCopy_util_Empty(val, newVal, c); err != nil {
 				return err
 			}
-			out.StrValues[key] = *newVal
+			out.strValues[key] = *newVal
 		}
 	} else {
-		out.StrValues = nil
+		out.strValues = nil
 	}
 	return nil
 }

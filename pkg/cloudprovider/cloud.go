@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler/algorithm"
 )
 
 // Interface is an abstract, pluggable interface for cloud providers.
@@ -39,6 +40,8 @@ type Interface interface {
 	Routes() (Routes, bool)
 	// ProviderName returns the cloud provider ID.
 	ProviderName() string
+	// SchedulerExtension returns a scheduler extension interface. Also returns true if the interface is supported, false otherwise.
+	SchedulerExtension() (SchedulerExtension, bool)
 }
 
 // Clusters is an abstract, pluggable interface for clusters of containers.
@@ -155,4 +158,27 @@ type Zone struct {
 type Zones interface {
 	// GetZone returns the Zone containing the current failure zone and locality region that the program is running in
 	GetZone() (Zone, error)
+}
+
+// SchedulerExtension is an abstract, pluggable interface for influencing
+// scheduling decisions and to bind/unbind resources.
+type SchedulerExtension interface {
+	// Filter based on provider implemented predicate functions.
+	Filter(pod *api.Pod, nodes *api.NodeList) (*api.NodeList, error)
+
+	// Prioritize based on provider implemented priority functions.
+	// Weight*priority is added up for each such priority function. The
+	// returned score is added to the score computed by Kubernetes
+	// scheduler. The total score is used to do the host selection.
+	Prioritize(pod *api.Pod, nodes *api.NodeList) (*algorithm.HostPriorityList, error)
+
+	// Inform the provider about the scheduling decision. Bind reserves
+	// resources for the pod. Returns annotations which can be used further
+	// down in the pod's lifecycle (network/storage plugin).
+	Bind(pod *api.Pod, host string) (map[string]string, error)
+
+	// Inform the provider about the unbind. Frees resources consumed by
+	// the pod. To be called by scheduler when Bind with apiserver fails or
+	// by apiserver in pod deletion path.
+	Unbind(pod *api.Pod) error
 }

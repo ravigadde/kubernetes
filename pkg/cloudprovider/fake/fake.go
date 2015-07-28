@@ -115,6 +115,11 @@ func (f *FakeCloud) Routes() (cloudprovider.Routes, bool) {
 	return f, true
 }
 
+// TODO: Not implemented yet.
+func (f *FakeCloud) SchedulerExtension() (cloudprovider.SchedulerExtension, bool) {
+	return nil, false
+}
+
 // GetTCPLoadBalancer is a stub implementation of TCPLoadBalancer.GetTCPLoadBalancer.
 func (f *FakeCloud) GetTCPLoadBalancer(name, region string) (*api.LoadBalancerStatus, bool, error) {
 	status := &api.LoadBalancerStatus{}
